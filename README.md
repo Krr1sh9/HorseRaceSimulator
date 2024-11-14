@@ -14,8 +14,20 @@ Save and Load: The player's balance is initially £1000 when starting a new game
 
 User-friendly GUI: The GUI is simple with buttons and drop-down lists for horse customisation, betting, saving/loading, and starting the race.
 
-## Classes
-# Test
+# Classes
+  ## Part1
+  ### Horse.java:
+  Contains instance variables
+  name: Name of the horse.
+  symbol: Icon representing the horse in the race.
+  confidence: Likelihood of advancing without falling.
+  breed, coatColour, and equipment: Customizable features.
+
+  ### Race.java:
+  
+  
+  ## Part2
+  
 
 # Installation
 
