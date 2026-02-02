@@ -25,13 +25,13 @@ User-friendly GUI: The GUI is simple with buttons and drop-down lists for horse 
 
   ### Race.java:
   The Race class contains methods for starting the race (startRace) and moving the horses through the race (moveHorse). The methods for visualising the race in real-time are also here, printRace, printLane, and addHorse.
+
+  ### startRaceGUI.java:
+  Contains the main method, which starts the GUI using "SwingUtilities.invokeLater".
   
   ## Part2
   ### GUI.java:
   Contains the user interface with buttons and drop-down lists for horse customisation, betting, saving/loading, and starting the race. The result of the race and whether the bet was won are also displayed.
-
-  ### startRaceGUI.java:
-  Contains the main method, which starts the GUI using "SwingUtilities.invokeLater".
 
 # Installation
 
