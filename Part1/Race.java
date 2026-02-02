@@ -2,24 +2,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.concurrent.TimeUnit;
 
-/**
- * A three-horse race, each horse running in its own lane
- * for a given distance
- * 
- * @author McFarewell
- * @version 1.0
- */
 public class Race extends JFrame {
-    private int raceLength;
-    private Horse[] lanes;
-    private JTextArea raceDisplay;
+    private int raceLength; // How long the track is (how many steps to reach the finish)
+    private Horse[] lanes; // Each array position is a lane
+    private JTextArea raceDisplay; // Where we print the track (text-based race display)
+    private static final double FALL_BASE_RATE = 0.01; // Base probability of falling
 
-    /**
-     * Constructor for objects of class Race
-     * Initially there are no horses in the lanes
-     * 
-     * @param distance the length of the racetrack (in metres/yards...)
-     */
+    // Create the race window and setup the lanes
     public Race(int distance, int numberOfHorses) {
         raceLength = distance;
         lanes = new Horse[numberOfHorses];
@@ -32,7 +21,7 @@ public class Race extends JFrame {
         raceDisplay = new JTextArea();
         raceDisplay.setEditable(false);
 
-        Font font = new Font("Monospaced", Font.PLAIN, 18); 
+        Font font = new Font("Monospaced", Font.PLAIN, 18);
         raceDisplay.setFont(font);
 
         JScrollPane scrollPane = new JScrollPane(raceDisplay);
@@ -44,18 +33,11 @@ public class Race extends JFrame {
         setLocation(0, screenSize.height - frameHeight); // Bottom-left corner
 
         setVisible(true);
-
-        // Bring the race window to the front
         toFront();
         requestFocus();
     }
 
-    /**
-     * Adds a horse to the race in a given lane
-     * 
-     * @param theHorse the horse to be added to the race
-     * @param laneNumber the lane that the horse will be added to
-     */
+    // Add a horse to a specific lane
     public void addHorse(Horse theHorse, int laneNumber) {
         if (laneNumber >= 1 && laneNumber <= lanes.length) {
             lanes[laneNumber - 1] = theHorse;
@@ -64,29 +46,25 @@ public class Race extends JFrame {
         }
     }
 
-    /**
-     * Start the race
-     * The horse are brought to the start and
-     * then repeatedly moved forward until the 
-     * race is finished
-     */
+    // Start the race using a SwingWorker
     public void startRace(RaceCompletionHandler handler) {
-        SwingWorker<Void, Void> raceWorker = new SwingWorker<>() {
+        SwingWorker<Void, Void> raceWorker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
                 boolean finished = false;
 
+                // Reset all horses at the start
                 for (Horse horse : lanes) {
                     horse.goBackToStart();
                 }
 
+                // Loop until a horse reaches the finish line
                 while (!finished) {
                     for (Horse horse : lanes) {
                         moveHorse(horse);
                     }
 
                     SwingUtilities.invokeLater(Race.this::printRace);
-
                     for (Horse horse : lanes) {
                         if (raceWonBy(horse)) {
                             finished = true;
@@ -97,12 +75,16 @@ public class Race extends JFrame {
                     TimeUnit.MILLISECONDS.sleep(100);
                 }
 
-                SwingUtilities.invokeLater(() -> {
-                    for (Horse horse : lanes) {
-                        if (raceWonBy(horse)) {
-                            raceDisplay.append("\nAnd the winner is " + horse.getName());
-                            updateConfidence(horse, lanes);
-                            handler.onRaceCompleted(getWinner());
+                // After finishing, show winner text and call the callback
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (Horse horse : lanes) {
+                            if (raceWonBy(horse)) {
+                                raceDisplay.append("\nAnd the winner is " + horse.getName());
+                                updateConfidence(horse, lanes);
+                                handler.onRaceCompleted(getWinner());
+                            }
                         }
                     }
                 });
@@ -114,42 +96,37 @@ public class Race extends JFrame {
         raceWorker.execute();
     }
 
-    /**
-     * Randomly make a horse move forward or fall depending
-     * on its confidence rating
-     * A fallen horse cannot move
-     * 
-     * @param theHorse the horse to be moved
-     */
+    // Move a horse based on confidence (and sometimes make it fall)
     private void moveHorse(Horse theHorse) {
         if (!theHorse.hasFallen()) {
-            if (Math.random() < theHorse.getConfidence()) {
+            double c = theHorse.getConfidence();
+
+            // Move forward with probability = confidence
+            if (Math.random() < c) {
                 theHorse.moveForward();
             }
-            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence())) {
+
+            // Fall probability per tick
+            if (Math.random() < (FALL_BASE_RATE * c * c)) {
                 theHorse.fall();
             }
         }
     }
 
-    /** 
-     * Determines if a horse has won the race
-     *
-     * @param theHorse The horse we are testing
-     * @return true if the horse has won, false otherwise.
-     */
+    // Check if the horse has reached the finish line
     private boolean raceWonBy(Horse theHorse) {
         return theHorse.getDistanceTravelled() >= raceLength;
     }
 
-    /***
-     * Print the race on the race GUI
-     */
+    // Draw the whole track for every horse
     private void printRace() {
         raceDisplay.setText(""); // Clear the display before printing each update
-        String trackBorder = "=".repeat(raceLength + 2); // Make the border equal to the race length (+2 for the boundaries)
+
+        // Border line
+        String trackBorder = repeatChar('=', raceLength + 2); // +2 for the boundaries
         raceDisplay.append(trackBorder + "\n");
 
+        // Print each lane underneath
         for (Horse horse : lanes) {
             printLane(horse);
             raceDisplay.append("\n");
@@ -158,30 +135,26 @@ public class Race extends JFrame {
         raceDisplay.append(trackBorder);
     }
 
-    /**
-     * print a horse's lane during the race
-     * for example
-     * |           X                      |
-     * to show how far the horse has run
-     */
+    // Print one lane
     private void printLane(Horse theHorse) {
         int spacesBefore = theHorse.getDistanceTravelled(); // Spaces before the horse
         int spacesAfter = raceLength - theHorse.getDistanceTravelled(); // Remaining spaces to the right
 
         raceDisplay.append("|");
-        raceDisplay.append(" ".repeat(Math.max(0, spacesBefore))); // Print spaces before the horse
+        raceDisplay.append(repeatChar(' ', Math.max(0, spacesBefore)));
 
         if (theHorse.hasFallen()) {
-            raceDisplay.append("❌"); // If the horse has fallen, display '❌'
+            raceDisplay.append("❌"); // If the horse has fallen
         } else {
             raceDisplay.append(String.valueOf(theHorse.getSymbol())); // Print the horse's symbol
         }
 
         // Ensure we have exactly raceLength spaces in total for the race line
-        raceDisplay.append(" ".repeat(Math.max(0, spacesAfter - 1))); // Adjust for the symbol's width
+        raceDisplay.append(repeatChar(' ', Math.max(0, spacesAfter - 1))); // Adjust for symbol width
         raceDisplay.append("| " + theHorse.getName() + " (Current confidence " + theHorse.getConfidence() + ")");
     }
 
+    // Winner gets more confidence, others lose a bit
     private void updateConfidence(Horse winner, Horse[] losers) {
         winner.setConfidence(Math.min(1.0, Math.round((winner.getConfidence() + 0.1) * 10.0) / 10.0));
         for (Horse loser : losers) {
@@ -191,6 +164,7 @@ public class Race extends JFrame {
         }
     }
 
+    // Return the winner's name
     public String getWinner() {
         for (Horse horse : lanes) {
             if (raceWonBy(horse)) {
@@ -200,6 +174,17 @@ public class Race extends JFrame {
         return "";
     }
 
+    // Helper method to repeat a character
+    private static String repeatChar(char c, int count) {
+        if (count <= 0)
+            return "";
+        StringBuilder sb = new StringBuilder(count);
+        for (int i = 0; i < count; i++)
+            sb.append(c);
+        return sb.toString();
+    }
+
+    // Small interface so GUI can receive the winner result
     public interface RaceCompletionHandler {
         void onRaceCompleted(String winner);
     }
